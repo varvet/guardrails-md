@@ -5,12 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./adapters/opencode.ts",
+    "./server": "./adapters/opencode-v2.ts",
     "./opencode": "./adapters/opencode.ts",
+    "./v2": "./adapters/opencode-v2.ts",
     "./pi": "./adapters/pi.ts"
   },
   "files": [
     "core.ts",
     "adapters/opencode.ts",
+    "adapters/opencode-v2.ts",
     "adapters/pi.ts",
     ".claude-plugin/plugin.json",
     "hooks/hooks.json",
@@ -61,6 +64,7 @@
     }
   },
   "devDependencies": {
+    "@opencode/plugin": "^2.0.27",
     "vitest": "^5.0.3"
   }
 }
