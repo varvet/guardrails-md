@@ -94,6 +94,13 @@ Add the plugin to `opencode.json` (global or per project):
 }
 ```
 
+OpenCode 2 loads the same config unchanged: it prefers a package plugin's
+`./server` export, which this package points at the v2 adapter. The v1
+implementation does not run on OpenCode 2, which is why the package
+carries both. The explicit `"@bergetai/guardrails-md/v2"` subpath also
+works on npm installs, and a git install (`github:org/repo`, optionally
+`#ref`) resolves the same exports.
+
 The package was called `@bergetai/opencode-guardrails-md` up to 0.5.1. That
 name is deprecated; replace it with `@bergetai/guardrails-md` in your config.
 
@@ -416,14 +423,20 @@ Verdicts you disagree with can be reviewed there and fed back as training
 data for the next fine-tune. The log holds whatever your commands hold, so
 treat it as sensitive.
 
-Manual install for opencode: copy [`core.ts`](core.ts) and
-[`adapters/opencode.ts`](adapters/opencode.ts) into
+Manual install for opencode: copy [`core.ts`](core.ts),
+[`adapters/opencode.ts`](adapters/opencode.ts) and
+[`adapters/opencode-v2.ts`](adapters/opencode-v2.ts) into
 `~/.config/opencode/plugins/guardrails-md/` (global) or
 `.opencode/plugins/guardrails-md/` (per project), keeping the `adapters/`
-folder, and register
-`"plugin": ["./plugins/guardrails-md/adapters/opencode.ts"]`. Manual installs
-need `@typesafe-ai/sdk` resolvable (`npm install -g @typesafe-ai/sdk`); the
-npm package brings it as a dependency.
+folder, and add an `index.ts` in that folder with
+`export { default } from "./adapters/opencode-v2.ts"` (OpenCode 2) or
+`export { default } from "./adapters/opencode.ts"` (OpenCode 1). OpenCode 2
+discovers the folder without registration; OpenCode 1 registers the v1
+adapter under `plugin` as before. The v2 loader resolves a directory, not a
+file, so a `plugins` entry that names the adapter file itself is ignored.
+Manual installs need `@typesafe-ai/sdk` resolvable
+(`npm install -g @typesafe-ai/sdk`); the npm package brings it as a
+dependency.
 
 ## Harness differences
 
