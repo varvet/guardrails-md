@@ -80,7 +80,7 @@ const SCRIPT_FILES_MAX = 3 // files read per command
 // part of the command text. One level deep; network-fetched payloads and
 // binaries remain documented gaps.
 
-type Verdict = {
+export type Verdict = {
   destructive: number
   credentials: number
   guardrails_violation?: number
@@ -439,7 +439,11 @@ function blockMessage(outcome: Outcome, hasGuardrails: boolean, harness: string)
   )
 }
 
-export function createGate(harness: Harness, directory: string) {
+export function createGate(
+  harness: Harness,
+  directory: string,
+  options?: { onVerdict?: (verdict: { command: string; scores: Verdict; block: Block | null }) => void },
+) {
   // Freeze guardrails NOW, before any command is judged. A lazy first-read
   // would let an agent weaken GUARDRAILS.md via the ungated edit tools
   // before issuing its first bash command and rule the whole session under
@@ -547,8 +551,9 @@ export function createGate(harness: Harness, directory: string) {
       blockCount,
       cooldownMs: outcome.decision === "BLOCK" ? backoffMs(blockCount) : 0,
     })
-    if (outcome.decision === "allow") return null
-    return { reason: blockMessage(outcome, hasGuardrails, harness.name) + `\n  ${command.slice(0, 200)}` }
+    const block = outcome.decision === "allow" ? null : { reason: blockMessage(outcome, hasGuardrails, harness.name) + `\n  ${command.slice(0, 200)}` }
+    options?.onVerdict?.({ command, scores: verdict, block })
+    return block
   }
 
   // A rule, not a verdict: no endpoint call, no threshold, and the cooldown

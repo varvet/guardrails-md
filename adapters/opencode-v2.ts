@@ -5,11 +5,13 @@
  *
  * v2 names: bash is shell, apply_patch is patch, edit/write carry `path`
  * instead of `filePath`. A block throws, and opencode hands the message to
- * the agent. The v2 plugin context has no toast API, so config warnings go
+ * the agent. Verdicts that pass get stamped onto the permission ask, so the
+ * human sees the scores when asked to approve. The v2 plugin context has no
+ * toast API, so config warnings go
  * to the server log — every block reason repeats them anyway.
  */
 import type { Plugin } from "@opencode/plugin"
-import { createGate, type Harness } from "../core.ts"
+import { createGate, type Harness, type Verdict } from "../core.ts"
 
 function opencode(): Harness {
   const home = process.env.HOME
@@ -34,12 +36,29 @@ function patchPaths(patchText: string): string[] {
 export default {
   id: "bergetai.guardrails-md",
   async setup(ctx) {
-    const gate = createGate(opencode(), ctx.location.directory)
+    // Verdicts arrive from the gate without a call id — the in-flight queue
+    // matches them back to the execute.before call by command text.
+    const verdicts = new Map<string, { command: string; scores: Verdict }>()
+    const inflight: { id: string; command: string }[] = []
+    const gate = createGate(opencode(), ctx.location.directory, {
+      onVerdict: (verdict) => {
+        if (verdict.block) return
+        const index = inflight.findIndex((call) => call.command === verdict.command)
+        if (index === -1) return
+        const [call] = inflight.splice(index, 1)
+        verdicts.set(call.id, { command: verdict.command, scores: verdict.scores })
+      },
+    })
     for (const message of gate.warnings) console.warn(message)
     await ctx.tool.hook("execute.before", async (event) => {
       const args = (event.input ?? {}) as Record<string, unknown>
       if (event.tool === "shell") {
-        const block = await gate.check(String(args.command ?? "").trim())
+        const command = String(args.command ?? "").trim()
+        const call = { id: event.id, command }
+        inflight.push(call)
+        const block = await gate.check(command)
+        const index = inflight.indexOf(call)
+        if (index !== -1) inflight.splice(index, 1)
         if (block) throw new Error(block.reason)
         return
       }
@@ -54,6 +73,21 @@ export default {
           if (block) throw new Error(block.reason)
         }
       }
+    })
+    await ctx.permission.hook("evaluate", (event) => {
+      if (event.action !== "shell" || !event.source) return
+      const hit = verdicts.get(event.source.id)
+      if (!hit) return
+      verdicts.delete(event.source.id)
+      const quote = hit.command.length > 80 ? `${hit.command.slice(0, 77)}…` : hit.command
+      const scores = [
+        `destructive ${hit.scores.destructive.toFixed(2)}`,
+        `credentials ${hit.scores.credentials.toFixed(2)}`,
+      ]
+      if (hit.scores.guardrails_violation !== undefined) {
+        scores.push(`guardrails_violation ${hit.scores.guardrails_violation.toFixed(2)}`)
+      }
+      event.message = `SystemOne-gate judged "${quote}": ${scores.join(", ")} — passed the block threshold`
     })
   },
 } satisfies Plugin
