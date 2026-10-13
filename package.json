@@ -8,12 +8,14 @@
     "./server": "./adapters/opencode-v2.ts",
     "./opencode": "./adapters/opencode.ts",
     "./v2": "./adapters/opencode-v2.ts",
+    "./tui": "./adapters/opencode-v2.tui.tsx",
     "./pi": "./adapters/pi.ts"
   },
   "files": [
     "core.ts",
     "adapters/opencode.ts",
     "adapters/opencode-v2.ts",
+    "adapters/opencode-v2.tui.tsx",
     "adapters/pi.ts",
     ".claude-plugin/plugin.json",
     "hooks/hooks.json",
