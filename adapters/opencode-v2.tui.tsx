@@ -9,7 +9,10 @@ export default {
   id: "bergetai.guardrails-md.tui",
   setup(ctx) {
     const [state, setState] = ctx.storage.memory("systemone-asks-2", {
-      initial: { lines: [] as Array<{ id: string; text: string }>, history: [] as Array<{ text: string }> },
+      initial: {
+        lines: [] as Array<{ id: string; sessionID: string; text: string }>,
+        history: [] as Array<{ text: string }>,
+      },
     })
     const dispose: Array<() => void> = []
     dispose.push(
@@ -19,7 +22,7 @@ export default {
         setState((draft) => {
           draft.lines = [
             ...draft.lines.filter((line) => line.id !== request.id),
-            { id: request.id, text: request.message ?? "" },
+            { id: request.id, sessionID: request.sessionID, text: request.message },
           ]
           draft.history = [
             { text: request.message },
@@ -38,8 +41,10 @@ export default {
     dispose.push(
       ctx.ui.slot({
         append: "session.composer.top",
-        render: () => {
-          const lines = state.lines.filter((line) => line.text.length > 0)
+        render: ({ sessionID }) => {
+          const lines = state.lines
+            .filter((line) => line.sessionID === sessionID)
+            .filter((line) => line.text.length > 0)
           if (lines.length === 0) return <box />
           return (
             <box paddingLeft={2} marginBottom={1}>
