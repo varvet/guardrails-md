@@ -50,6 +50,7 @@ beforeEach(() => {
   vi.stubEnv("BERGET_API_KEY", "test-key")
   vi.stubEnv("PI_CODING_AGENT_DIR", undefined)
   vi.stubEnv("SYSTEMONE_GATE", undefined)
+  vi.stubEnv("SYSTEMONE_FAIL_OPEN", undefined)
   vi.spyOn(process, "cwd").mockReturnValue(dir)
   systemOne.mockResolvedValue(structuredClone(allow))
   getApiKeyForProvider.mockResolvedValue(undefined)

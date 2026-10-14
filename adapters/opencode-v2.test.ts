@@ -40,6 +40,7 @@ beforeEach(() => {
   vi.stubEnv("XDG_DATA_HOME", undefined)
   vi.stubEnv("SYSTEMONE_GATE", undefined)
   vi.stubEnv("SYSTEMONE_THRESHOLD", undefined)
+  vi.stubEnv("SYSTEMONE_FAIL_OPEN", undefined)
   systemOne.mockResolvedValue(structuredClone(allow))
   sdk.configs.length = 0
 })

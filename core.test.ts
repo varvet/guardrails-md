@@ -55,6 +55,7 @@ beforeEach(() => {
   vi.stubEnv("HOME", home)
   process.env.BERGET_API_KEY = "test-key"
   vi.stubEnv("TYPESAFE_API_KEY", undefined)
+  vi.stubEnv("SYSTEMONE_FAIL_OPEN", undefined)
   delete process.env.SYSTEMONE_GATE
   delete process.env.SYSTEMONE_FAIL_OPEN
   delete process.env.SYSTEMONE_LOG
