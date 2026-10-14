@@ -53,6 +53,7 @@ export default {
     )
     dispose.push(
       ctx.keymap.layer(() => ({
+        mode: "global",
         commands: [
           {
             id: "systemone.verdicts",
