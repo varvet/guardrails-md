@@ -13,7 +13,7 @@
 import type { Plugin } from "@opencode/plugin"
 import { appendFileSync, mkdirSync } from "node:fs"
 import { dirname } from "node:path"
-import { createGate, type Harness, type Verdict } from "../core.ts"
+import { createGate, type Block, type Harness, type Verdict } from "../core.ts"
 
 function trace(message: string): void {
   try {
@@ -76,21 +76,20 @@ export default {
     trace(`setup directory=${ctx.location.directory}`)
     // Verdicts arrive from the gate without a call id — the in-flight queue
     // matches them back to the execute.before call by command text.
-    const verdicts = new Map<string, { command: string; scores: Verdict }>()
+    const verdicts = new Map<string, { command: string; scores: Verdict; block: Block | null }>()
     const inflight: { id: string; command: string }[] = []
     const gate = createGate(opencode(), ctx.location.directory, {
       onVerdict: (verdict) => {
         trace(
           `onVerdict block=${verdict.block ? "true" : "false"} destructive=${verdict.scores.destructive.toFixed(2)} credentials=${verdict.scores.credentials.toFixed(2)}`,
         )
-        if (verdict.block) return
         const index = inflight.findIndex((call) => call.command === verdict.command)
         if (index === -1) {
           trace(`onVerdict no inflight match for ${verdict.command.length} chars`)
           return
         }
         const [call] = inflight.splice(index, 1)
-        verdicts.set(call.id, { command: verdict.command, scores: verdict.scores })
+        verdicts.set(call.id, { command: verdict.command, scores: verdict.scores, block: verdict.block })
       },
     })
     for (const message of gate.warnings) console.warn(message)
@@ -133,6 +132,7 @@ export default {
             return
           }
           verdicts.delete(event.source.id)
+          if (hit.block) return
           const quote = hit.command.length > 80 ? `${hit.command.slice(0, 77)}…` : hit.command
           const scores = [
             `destructive ${hit.scores.destructive.toFixed(2)}`,
