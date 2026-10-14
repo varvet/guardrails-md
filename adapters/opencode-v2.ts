@@ -3,12 +3,9 @@
  * package default stays the v1 adapter (adapters/opencode.ts); v2 harnesses
  * load this entrypoint via "@bergetai/guardrails-md/v2".
  *
- * v2 names: bash is shell, apply_patch is patch, edit/write carry `path`
- * instead of `filePath`. A block throws, and opencode hands the message to
- * the agent. Verdicts that pass get stamped onto the permission ask, so the
- * human sees the scores when asked to approve. The v2 plugin context has no
- * toast API, so config warnings go
- * to the server log — every block reason repeats them anyway.
+ * The gate judges every shell command. Passing verdicts stamp the ask; judged
+ * blocks ask the human, whose Allow overrules the gate and whose Deny keeps
+ * the command blocked. Unattended runs auto-reject that ask, so it fails closed.
  */
 import type { Plugin } from "@opencode/plugin"
 import { appendFileSync, mkdirSync } from "node:fs"
@@ -106,7 +103,7 @@ export default {
         const block = await gate.check(command, seat)
         const index = inflight.indexOf(call)
         if (index !== -1) inflight.splice(index, 1)
-        if (block) throw new Error(block.reason)
+        if (block && !verdicts.has(event.id)) throw new Error(block.reason)
         return
       }
       if (event.tool === "edit" || event.tool === "write") {
@@ -132,7 +129,6 @@ export default {
             return
           }
           verdicts.delete(event.source.id)
-          if (hit.block) return
           const quote = hit.command.length > 80 ? `${hit.command.slice(0, 77)}…` : hit.command
           const scores = [
             `destructive ${hit.scores.destructive.toFixed(2)}`,
@@ -140,6 +136,12 @@ export default {
           ]
           if (hit.scores.guardrails_violation !== undefined) {
             scores.push(`guardrails_violation ${hit.scores.guardrails_violation.toFixed(2)}`)
+          }
+          if (hit.block) {
+            event.effect = "ask"
+            event.message = `SystemOne-gate blocked "${quote}": ${scores.join(", ")}, over the block threshold. Allow overrules the gate and runs it. Deny keeps it blocked.`
+            trace(`evaluate asked for ${event.source.id}`)
+            return
           }
           event.message = `SystemOne-gate judged "${quote}": ${scores.join(", ")} — passed the block threshold`
           trace(`evaluate stamped for ${event.source.id}`)

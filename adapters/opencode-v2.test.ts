@@ -69,12 +69,10 @@ describe("opencode v2 adapter", () => {
     await expect(hook({ tool: "shell", input: { command: "ls -la" } })).resolves.toBeUndefined()
   })
 
-  it("Given a destructive verdict, When shell runs, Then the hook throws with opencode wording", async () => {
+  it("Given a destructive verdict, When shell runs, Then the hook resolves", async () => {
     systemOne.mockResolvedValue(blockDestructive)
     const hook = (await loadHooks()).tool["execute.before"]!
-    await expect(hook({ tool: "shell", input: { command: "rm -rf /data" } })).rejects.toThrow(
-      /destructive=0\.98[\s\S]*restart opencode/,
-    )
+    await expect(hook({ tool: "shell", id: "call_a", input: { command: "rm -rf /data" } })).resolves.toBeUndefined()
   })
 
   it("Given a non-gated tool, When it is called, Then the model is not asked", async () => {
@@ -141,16 +139,25 @@ describe("opencode v2 adapter: verdict on permission asks", () => {
     expect(event.effect).toBe("ask")
   })
 
-  it("Given a blocked command, When evaluate fires, Then the ask carries nothing", async () => {
+  it("Given a blocked command, When evaluate fires for allow, Then the ask becomes gated", async () => {
     systemOne.mockResolvedValue(blockDestructive)
     const loaded = await loadHooks()
-    await expect(
-      loaded.tool["execute.before"]!({ tool: "shell", id: "call_2", input: { command: "rm -rf /data" } }),
-    ).rejects.toThrow(/destructive=0\.98/)
-    const event = { action: "shell", source: { id: "call_2" }, effect: "ask", message: undefined }
+    await loaded.tool["execute.before"]!({ tool: "shell", id: "call_2", input: { command: "rm -rf /data" } })
+    const event = { action: "shell", source: { id: "call_2" }, effect: "allow", message: undefined }
+    await loaded.permission["evaluate"]!(event)
+    expect(event.effect).toBe("ask")
+    expect(event.message).toMatch(/over the block threshold\. Allow overrules/)
+  })
+
+  it("Given the endpoint is down, When shell runs, Then execute throws and no stash is kept", async () => {
+    systemOne.mockRejectedValue(new Error("gateway down"))
+    const loaded = await loadHooks()
+    await expect(loaded.tool["execute.before"]!({ tool: "shell", id: "call_6", input: { command: "ls" } })).rejects.toThrow(
+      /endpoint unreachable/,
+    )
+    const event = { action: "shell", source: { id: "call_6" }, effect: "allow", message: undefined }
     await loaded.permission["evaluate"]!(event)
     expect(event.message).toBeUndefined()
-    expect(event.effect).toBe("ask")
   })
 
   it("Given an unrelated call id, When evaluate fires, Then the ask carries nothing", async () => {
