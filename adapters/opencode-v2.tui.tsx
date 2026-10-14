@@ -1,3 +1,4 @@
+/** @jsxImportSource @opentui/solid */
 /**
  * TUI side of the v2 adapter: opencode's permission prompt does not render
  * the verdict the server-side plugin stamps onto the ask, so this claims the
