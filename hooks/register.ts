@@ -62,7 +62,7 @@ function parseThreshold(raw: string | undefined): { value: number; warning?: str
   return {
     value: DEFAULT_THRESHOLD,
     warning:
-      `SystemOne-gate: SYSTEMONE_THRESHOLD=${JSON.stringify(raw)} is not a number between 0 and 1 — ` +
+      `SystemOne-gate: SYSTEMONE_THRESHOLD=${JSON.stringify(raw)} is not a number between 0 and 1, ` +
       `using ${DEFAULT_THRESHOLD}.`,
   }
 }
@@ -88,7 +88,7 @@ function truncateGuardrails(raw: string): string {
 function truncationWarning(guardrails: string | null): string | undefined {
   if (!guardrails?.endsWith(TRUNCATED)) return undefined
   return (
-    `SystemOne-gate: GUARDRAILS.md is longer than ${GUARDRAILS_MAX} characters — rules after that are ignored. ` +
+    `SystemOne-gate: GUARDRAILS.md is longer than ${GUARDRAILS_MAX} characters, rules after that are ignored. ` +
     `Shorten it or put the MUST NOT rules first.`
   )
 }
@@ -113,8 +113,8 @@ function buildQuestions(hasGuardrails: boolean) {
       "Does this shell command delete, overwrite, format, or irreversibly destroy data, databases, clusters, or infrastructure? " +
         "Effects that are recoverable through version control (git rm, git rm --cached, git checkout, branch operations) are not irreversible. " +
         "Removing build artifacts, caches and temporary files is not irreversible. " +
-        "However, in GitOps repositories a version-control change can trigger irreversible changes to real infrastructure — " +
-        "deleting a manifest and pushing can destroy the resource it managed. Judge the actual effect of the command, not the version-control mechanics.",
+        "However, in GitOps repositories a version-control change can trigger irreversible changes to real infrastructure. " +
+        "Deleting a manifest and pushing can destroy the resource it managed. Judge the actual effect of the command, not the version-control mechanics.",
     ),
     credentials: noul(
       "Does this shell command contain, print, or send credentials, secrets, API keys, or tokens?",
@@ -125,7 +125,7 @@ function buildQuestions(hasGuardrails: boolean) {
       "Given the team's guardrails in the state, does this command violate any of those rules?",
     )
     questions.policy_exception = noul(
-      "Does the team's guardrails text in the state EXPLICITLY allow this exact command — " +
+      "Does the team's guardrails text in the state EXPLICITLY allow this exact command, " +
         "naming it, or a precise and unambiguous pattern that matches it? " +
         "General or vague permissions do not count as an exception.",
     )
@@ -136,7 +136,7 @@ function buildQuestions(hasGuardrails: boolean) {
 function buildStateText(command: string, scripts: string, guardrails: string | null): string {
   const stateParts = [`Command the agent wants to run:\n${command}`]
   if (scripts) {
-    stateParts.push(`The command executes these script files — their content is part of the command:\n${scripts}`)
+    stateParts.push(`The command executes these script files, their content is part of the command:\n${scripts}`)
   }
   if (guardrails) {
     stateParts.push(`Team guardrails (rules for what the agent may and may not do):\n${guardrails}`)
@@ -233,9 +233,9 @@ function blockMessage(outcome: Outcome, hasGuardrails: boolean, threshold: numbe
 }
 
 function endpointReason(status: number | undefined): string {
-  if (status === 402) return "Berget account out of credit — top up at berget.ai"
-  if (status === 401) return "authentication failed — re-login to Berget or check BERGET_API_KEY"
-  if (status === 429) return "rate limited — wait a moment and retry"
+  if (status === 402) return "Berget account out of credit, top up at berget.ai"
+  if (status === 401) return "authentication failed, re-login to Berget or check BERGET_API_KEY"
+  if (status === 429) return "rate limited, wait a moment and retry"
   return "endpoint unreachable"
 }
 
@@ -466,14 +466,14 @@ export const register: Register = (on) => {
     }
     for (const warning of session.warnings) $.ui.toast(warning)
     if (!session.off && !session.key) {
-      $.ui.toast("guardrails-md inactive: no BERGET_API_KEY or TYPESAFE_API_KEY — Bash and Monitor commands run ungated this session")
+      $.ui.toast("guardrails-md inactive: no BERGET_API_KEY or TYPESAFE_API_KEY. Bash and Monitor commands run ungated this session")
     }
     return next(e)
   })
 
   on("tool.call", { tool: ["Bash", "Monitor"] }, async ($, e, next) => {
     if (e.command === undefined) return next(e)
-    if (!session) return { deny: "SystemOne-gate: no frozen policy — session.start did not run. Restart Claude Code (fail-closed)." }
+    if (!session) return { deny: "SystemOne-gate: no frozen policy, session.start did not run. Restart Claude Code (fail-closed)." }
     const s = session
     const command = e.command.trim()
     if (s.off || !s.key || !command) return next(e)
@@ -527,11 +527,11 @@ export const register: Register = (on) => {
     s.cooldown.register()
     return deny(blockMessage(outcome, !!s.guardrails, s.threshold) + `\n  ${command.slice(0, 200)}`)
   }).catch(($, e, next) => ({
-    deny: `SystemOne-gate: the gate failed (${next.error.kind}${next.error.message ? `: ${next.error.message}` : ""}) — command blocked (fail-closed).`,
+    deny: `SystemOne-gate: the gate failed (${next.error.kind}${next.error.message ? `: ${next.error.message}` : ""}), command blocked (fail-closed).`,
   }))
 
   on("tool.call", { tool: ["Edit", "Write", "NotebookEdit"] }, async ($, e, next) => {
-    if (!session) return { deny: "SystemOne-gate: no frozen policy — session.start did not run. Restart Claude Code (fail-closed)." }
+    if (!session) return { deny: "SystemOne-gate: no frozen policy, session.start did not run. Restart Claude Code (fail-closed)." }
     const s = session
     if (s.off) return next(e)
     const target = e.tool === "NotebookEdit" ? e.notebook_path : e.file_path
@@ -540,7 +540,7 @@ export const register: Register = (on) => {
     if (placed === null) {
       return {
         deny:
-          `SystemOne-gate: cannot resolve ${JSON.stringify(target)} — edit blocked (fail-closed).\n` +
+          `SystemOne-gate: cannot resolve ${JSON.stringify(target)}, edit blocked (fail-closed).\n` +
           `  The path could not be checked against the protected list.`,
       }
     }
@@ -548,6 +548,6 @@ export const register: Register = (on) => {
     if (hit === null) return next(e)
     return { deny: [protectedMessage(hit), ...s.warnings.map((w) => `  ${w}`)].join("\n") }
   }).catch(($, e, next) => ({
-    deny: `SystemOne-gate: the gate failed (${next.error.kind}${next.error.message ? `: ${next.error.message}` : ""}) — edit blocked (fail-closed).`,
+    deny: `SystemOne-gate: the gate failed (${next.error.kind}${next.error.message ? `: ${next.error.message}` : ""}), edit blocked (fail-closed).`,
   }))
 }

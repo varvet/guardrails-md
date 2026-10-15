@@ -53,7 +53,7 @@ function parseThreshold(raw: string | undefined): { value: number; warning?: str
   return {
     value: DEFAULT_THRESHOLD,
     warning:
-      `SystemOne-gate: SYSTEMONE_THRESHOLD=${JSON.stringify(raw)} is not a number between 0 and 1 — ` +
+      `SystemOne-gate: SYSTEMONE_THRESHOLD=${JSON.stringify(raw)} is not a number between 0 and 1, ` +
       `using ${DEFAULT_THRESHOLD}.`,
   }
 }
@@ -261,7 +261,7 @@ export async function judge({ client, command, guardrails }: JudgeContext): Prom
   const stateParts = [`Command the agent wants to run:\n${command}`]
   const scripts = scriptContents(command)
   if (scripts) {
-    stateParts.push(`The command executes these script files — their content is part of the command:\n${scripts}`)
+    stateParts.push(`The command executes these script files, their content is part of the command:\n${scripts}`)
   }
   if (guardrails) {
     stateParts.push(
@@ -273,8 +273,8 @@ export async function judge({ client, command, guardrails }: JudgeContext): Prom
       "Does this shell command delete, overwrite, format, or irreversibly destroy data, databases, clusters, or infrastructure? " +
         "Effects that are recoverable through version control (git rm, git rm --cached, git checkout, branch operations) are not irreversible. " +
         "Removing build artifacts, caches and temporary files is not irreversible. " +
-        "However, in GitOps repositories a version-control change can trigger irreversible changes to real infrastructure — " +
-        "deleting a manifest and pushing can destroy the resource it managed. Judge the actual effect of the command, not the version-control mechanics.",
+        "However, in GitOps repositories a version-control change can trigger irreversible changes to real infrastructure. " +
+        "Deleting a manifest and pushing can destroy the resource it managed. Judge the actual effect of the command, not the version-control mechanics.",
     ),
     credentials: noul(
       "Does this shell command contain, print, or send credentials, secrets, API keys, or tokens?",
@@ -285,7 +285,7 @@ export async function judge({ client, command, guardrails }: JudgeContext): Prom
       "Given the team's guardrails in the state, does this command violate any of those rules?",
     )
     questions.policy_exception = noul(
-      "Does the team's guardrails text in the state EXPLICITLY allow this exact command — " +
+      "Does the team's guardrails text in the state EXPLICITLY allow this exact command, " +
         "naming it, or a precise and unambiguous pattern that matches it? " +
         "General or vague permissions do not count as an exception.",
     )
@@ -373,9 +373,9 @@ function formatWait(remainingMs: number): string {
 }
 
 function endpointReason(status: number | undefined): string {
-  if (status === 402) return "Berget account out of credit — top up at berget.ai"
-  if (status === 401) return "authentication failed — re-login to Berget or check BERGET_API_KEY"
-  if (status === 429) return "rate limited — wait a moment and retry"
+  if (status === 402) return "Berget account out of credit, top up at berget.ai"
+  if (status === 401) return "authentication failed, re-login to Berget or check BERGET_API_KEY"
+  if (status === 429) return "rate limited, wait a moment and retry"
   return "endpoint unreachable"
 }
 
@@ -447,7 +447,7 @@ export function createGate(
   const warnings = [
     threshold.warning,
     guardrails?.endsWith(TRUNCATED)
-      ? `SystemOne-gate: GUARDRAILS.md is longer than ${GUARDRAILS_MAX} characters — rules after that are ignored. ` +
+      ? `SystemOne-gate: GUARDRAILS.md is longer than ${GUARDRAILS_MAX} characters, rules after that are ignored. ` +
         `Shorten it or put the MUST NOT rules first.`
       : undefined,
   ].filter((w): w is string => w !== undefined)
