@@ -143,7 +143,7 @@ export default {
             trace(`evaluate asked for ${event.source.id}`)
             return
           }
-          event.message = `SystemOne-gate judged "${quote}": ${scores.join(", ")} — passed the block threshold`
+          event.message = `SystemOne-gate judged "${quote}": ${scores.join(", ")}, below the block threshold.`
           trace(`evaluate stamped for ${event.source.id}`)
         } catch (err) {
           trace(`evaluate threw ${String(err)}`)

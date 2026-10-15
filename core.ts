@@ -473,7 +473,7 @@ export function createGate(
     if (remainingMs <= 0) return null
     return {
       reason:
-        `SystemOne-gate: cooling down after ${blockCount} blocked command${blockCount === 1 ? "" : "s"} — ` +
+        `SystemOne-gate: cooling down after ${blockCount} blocked command${blockCount === 1 ? "" : "s"}, ` +
         `next attempt in ~${formatWait(remainingMs)}. The wait doubles with every block; ` +
         `restarting ${harness.name} resets it.`,
     }
@@ -524,7 +524,7 @@ export function createGate(
       if (FAIL_OPEN) return null // explicit opt-out: availability over strictness
       return {
         reason:
-          `SystemOne-gate: ${endpointReason((err as { status?: number }).status)} — command blocked.\n` +
+          `SystemOne-gate: ${endpointReason((err as { status?: number }).status)}. Command blocked.\n` +
           `  ${command.slice(0, 200)}\n` +
           `  ${String(err).slice(0, 160)}\n` +
           `  Retry shortly, or set SYSTEMONE_FAIL_OPEN=1 to prefer availability.`,

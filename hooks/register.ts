@@ -241,7 +241,7 @@ function endpointReason(status: number | undefined): string {
 
 function endpointFailure(command: string, err: unknown): string {
   return (
-    `SystemOne-gate: ${endpointReason((err as { status?: number }).status)} — command blocked.\n` +
+    `SystemOne-gate: ${endpointReason((err as { status?: number }).status)}. Command blocked.\n` +
     `  ${command.slice(0, 200)}\n` +
     `  ${String(err).slice(0, 160)}\n` +
     `  Retry shortly, or set SYSTEMONE_FAIL_OPEN=1 to prefer availability.`
@@ -304,7 +304,7 @@ function createCooldown() {
     const remainingMs = cooldownUntil - Date.now()
     if (remainingMs <= 0) return null
     return (
-      `SystemOne-gate: cooling down after ${blockCount} blocked command${blockCount === 1 ? "" : "s"} — ` +
+      `SystemOne-gate: cooling down after ${blockCount} blocked command${blockCount === 1 ? "" : "s"}, ` +
       `next attempt in ~${formatWait(remainingMs)}. The wait doubles with every block; ` +
       `restarting ${HARNESS} resets it.`
     )

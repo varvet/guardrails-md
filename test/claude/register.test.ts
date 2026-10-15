@@ -137,7 +137,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { answer: () => Promise.reject(new Error("refused by web-fetch policy")) })
     await start($)
     const out = await bash($, "ls")
-    expect(out.deny).toContain("endpoint unreachable — command blocked")
+    expect(out.deny).toContain("endpoint unreachable. Command blocked")
     expect(w.ran).toEqual([])
   })
 
@@ -155,7 +155,7 @@ describe("guardrails-md mod", () => {
     await w.clock.advance(0)
     await w.clock.advance(5000)
     const out = await pending
-    expect(out.deny).toContain("endpoint unreachable — command blocked")
+    expect(out.deny).toContain("endpoint unreachable. Command blocked")
     expect(out.deny).toContain("timed out after 5000 ms")
     expect(w.ran).toEqual([])
   })
