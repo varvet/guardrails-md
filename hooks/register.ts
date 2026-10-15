@@ -220,21 +220,13 @@ function decide(verdict: Verdict, hasGuardrails: boolean, threshold: number): Ou
 function blockMessage(outcome: Outcome, hasGuardrails: boolean, threshold: number): string {
   const perKind =
     outcome.kind === "guardrails_violation"
-      ? `\n  If this is a false positive, your human can name the command in the` +
-        `\n  MAY section of GUARDRAILS.md and restart ${HARNESS} — the gate` +
-        `\n  follows the file.`
-      : `\n  Judged destructive/leaking on its own merits — named exceptions in` +
-        `\n  GUARDRAILS.md do not override this. If it is intended, your human` +
-        `\n  can run it directly, or restart ${HARNESS} with SYSTEMONE_GATE=off` +
-        `\n  for a session that needs it.`
+      ? `If this is a false positive, a human can name the command in the MAY section of GUARDRAILS.md and restart ${HARNESS}. The gate follows the file.`
+      : `Judged destructive or leaking on its own merits. Named exceptions in GUARDRAILS.md do not override this. If the command is intended, a human can run it in a terminal, or restart ${HARNESS} with SYSTEMONE_GATE=off for a session that needs it.`
   const bootstrap = hasGuardrails
     ? ""
-    : `\n  No GUARDRAILS.md found in this repo. Your human can create one` +
-      `\n  (legacy lowercase guardrails.md is still read) and write what the` +
-      `\n  agent may and may not do — name what should` +
-      `\n  pass in the MAY section, then restart ${HARNESS}.`
+    : `\nNo GUARDRAILS.md found in this repo. A human can create one (legacy lowercase guardrails.md is still read) and write what the agent may and may not do. Name what should pass in the MAY section, then restart ${HARNESS}.`
   return (
-    `SystemOne-gate: blocked command — ${outcome.kind}=${outcome.worst.toFixed(2)} > ${threshold}\n` +
+    `SystemOne-gate blocked this command. ${outcome.kind}=${outcome.worst.toFixed(2)} is over the ${threshold} threshold.\n` +
     perKind +
     bootstrap
   )
@@ -372,11 +364,7 @@ function protectedPath(root: string, resolved: string): string | null {
 }
 
 function protectedMessage(entry: string): string {
-  return (
-    `SystemOne-gate: protected file — ${entry}\n` +
-    `  Policy and harness configuration are edited by your human, not the agent.\n` +
-    `  Ask them to make the change and restart ${HARNESS}.`
-  )
+  return `SystemOne-gate: protected file ${entry}. Policy and harness configuration are edited by a human, not the agent. Ask them to make the change and restart ${HARNESS}.`
 }
 
 // Where the path lands, every symlink followed — including for a file that

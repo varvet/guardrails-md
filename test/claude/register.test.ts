@@ -101,14 +101,14 @@ describe("guardrails-md mod", () => {
     world(on, { files: { [`${CWD}/GuardRails.md`]: POLICY } })
     await start($)
     const out = await $.tool.call({ tool: "Edit", file_path: `${CWD}/GuardRails.md`, old_string: "a", new_string: "b" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — GUARDRAILS.md")
+    expect(out.deny).toContain("SystemOne-gate: protected file GUARDRAILS.md")
   })
 
   test("Given a destructive verdict, When Bash runs, Then the call is denied with the reason", async ($, on) => {
     const w = world(on, { answer: () => ({ status: 200, body: destructive }) })
     await start($)
     const out = await bash($, "rm -rf ./data")
-    expect(out.deny).toContain("SystemOne-gate: blocked command — destructive=0.98")
+    expect(out.deny).toContain("SystemOne-gate blocked this command. destructive=0.98")
     expect(out.deny).toContain("restart claude")
     expect(w.ran).toEqual([])
   })
@@ -164,7 +164,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { answer: () => ({ status: 200, body: { answers: { destructive: { noul: "0.98" } } } }) })
     await start($)
     const out = await bash($, "rm -rf ./data")
-    expect(out.deny).toContain("SystemOne-gate: blocked command — destructive=0.98 > 0.7")
+    expect(out.deny).toContain("SystemOne-gate blocked this command. destructive=0.98 is over the 0.7 threshold")
     expect(w.ran).toEqual([])
   })
 
@@ -181,7 +181,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { answer: () => ({ status: 200, body: destructive }) })
     await start($)
     const out = await monitor($, { command: "rm -rf ./data" })
-    expect(out.deny).toContain("SystemOne-gate: blocked command — destructive=0.98")
+    expect(out.deny).toContain("SystemOne-gate blocked this command. destructive=0.98")
     expect(JSON.parse(w.fetches[0].body).state.text).toContain("rm -rf ./data")
     expect(w.ran).toEqual([])
   })
@@ -214,7 +214,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { files: { [`${CWD}/guardrails.md`]: POLICY } })
     await start($)
     const out = await $.tool.call({ tool: "Edit", file_path: `${CWD}/guardrails.md`, old_string: "a", new_string: "b" })
-    expect(out.deny).toContain(`SystemOne-gate: protected file — GUARDRAILS.md`)
+    expect(out.deny).toContain(`SystemOne-gate: protected file GUARDRAILS.md`)
     expect(out.deny).toContain("restart claude")
     expect(w.fetches).toEqual([])
     expect(w.ran).toEqual([])
@@ -224,7 +224,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { files: { [`${CWD}/.claude/settings.json`]: "{}" } })
     await start($)
     const out = await $.tool.call({ tool: "Write", file_path: `${CWD}/.claude/settings.json`, content: "{}" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — .claude/settings.json")
+    expect(out.deny).toContain("SystemOne-gate: protected file .claude/settings.json")
     expect(w.ran).toEqual([])
   })
 
@@ -232,7 +232,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, {})
     await start($)
     const out = await $.tool.call({ tool: "Write", file_path: `${CWD}/.claude/settings.json`, content: "{}" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — .claude/settings.json")
+    expect(out.deny).toContain("SystemOne-gate: protected file .claude/settings.json")
     expect(w.ran).toEqual([])
   })
 
@@ -240,7 +240,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { files: { [`${CWD}/.pi/x.ipynb`]: "{}" } })
     await start($)
     const out = await $.tool.call({ tool: "NotebookEdit", notebook_path: `${CWD}/.pi/x.ipynb`, new_source: "{}" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — .pi/")
+    expect(out.deny).toContain("SystemOne-gate: protected file .pi/")
     expect(w.ran).toEqual([])
   })
 
@@ -248,7 +248,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { files: { [`${CWD}/guardrails.md`]: POLICY }, links: { [`${CWD}/notes.md`]: `${CWD}/guardrails.md` } })
     await start($)
     const out = await $.tool.call({ tool: "Edit", file_path: `${CWD}/notes.md`, old_string: "a", new_string: "b" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — GUARDRAILS.md")
+    expect(out.deny).toContain("SystemOne-gate: protected file GUARDRAILS.md")
     expect(w.ran).toEqual([])
   })
 
@@ -256,7 +256,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { files: { [`${CWD}/.github/workflows/ci.yml`]: "on: push" } })
     await start($)
     const out = await $.tool.call({ tool: "Write", file_path: `${CWD}/.github/workflows/ci.yml`, content: "on: push" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — .github/workflows/")
+    expect(out.deny).toContain("SystemOne-gate: protected file .github/workflows/")
     expect(w.ran).toEqual([])
   })
 
@@ -273,7 +273,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { env: {}, files: { [`${CWD}/guardrails.md`]: POLICY } })
     await start($)
     const out = await $.tool.call({ tool: "Edit", file_path: `${CWD}/guardrails.md`, old_string: "a", new_string: "b" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — GUARDRAILS.md")
+    expect(out.deny).toContain("SystemOne-gate: protected file GUARDRAILS.md")
     expect(w.ran).toEqual([])
   })
 
@@ -281,7 +281,7 @@ describe("guardrails-md mod", () => {
     const w = world(on, { env: { BERGET_API_KEY: "k" }, files: { [`${CWD}/guardrails.md`]: POLICY } })
     await start($)
     const out = await $.tool.call({ tool: "Write", file_path: `${CWD}/Guardrails.MD`, content: "new" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — GUARDRAILS.md")
+    expect(out.deny).toContain("SystemOne-gate: protected file GUARDRAILS.md")
     expect(w.ran).toEqual([])
   })
 
@@ -300,7 +300,7 @@ describe("guardrails-md mod", () => {
     })
     await start($)
     const out = await $.tool.call({ tool: "Write", file_path: `${CWD}/.pi/x.ts`, content: "" })
-    expect(out.deny).toContain("SystemOne-gate: protected file — .pi/")
+    expect(out.deny).toContain("SystemOne-gate: protected file .pi/")
     expect(w.ran).toEqual([])
   })
 
