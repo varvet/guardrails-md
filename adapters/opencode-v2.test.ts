@@ -94,7 +94,7 @@ describe("opencode v2 adapter: protected paths", () => {
   it("Given an edit on GUARDRAILS.md via path, When the hook runs, Then it throws and the model is not asked", async () => {
     const hook = (await loadHooks()).tool["execute.before"]!
     await expect(hook({ tool: "edit", input: { path: join(dir, "GUARDRAILS.md") } })).rejects.toThrow(
-      /protected file — GUARDRAILS\.md[\s\S]*restart opencode/,
+      /protected file GUARDRAILS\.md[\s\S]*restart opencode/,
     )
     expect(systemOne).not.toHaveBeenCalled()
   })
@@ -110,7 +110,7 @@ describe("opencode v2 adapter: protected paths", () => {
   it("Given patch touching opencode.json, When the hook runs, Then it throws", async () => {
     const hook = (await loadHooks()).tool["execute.before"]!
     const patchText = `*** Begin Patch\n*** Update File: ${join(dir, "opencode.json")}\n@@\n@@\n*** End Patch`
-    await expect(hook({ tool: "patch", input: { patchText } })).rejects.toThrow(/protected file — opencode\.json/)
+    await expect(hook({ tool: "patch", input: { patchText } })).rejects.toThrow(/protected file opencode\.json/)
     expect(systemOne).not.toHaveBeenCalled()
   })
 

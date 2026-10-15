@@ -143,20 +143,20 @@ describe("checkPath", () => {
     const gate = await makeGate()
     expect(gate.checkPath(join(dir, "GUARDRAILS.md"))).toMatchObject({
       reason: expect.stringMatching(
-        /protected file — GUARDRAILS\.md[\s\S]*edited by your human, not the agent[\s\S]*Ask them to make the change and restart opencode/,
+        /protected file GUARDRAILS\.md[\s\S]*edited by a human, not the agent[\s\S]*Ask them to make the change and restart opencode/,
       ),
     })
   })
 
   it("Given a write to the legacy lowercase guardrails.md, When checked, Then it is refused under the canonical name", async () => {
     const gate = await makeGate()
-    expect(gate.checkPath(join(dir, "guardrails.md"))?.reason).toContain("protected file — GUARDRAILS.md")
+    expect(gate.checkPath(join(dir, "guardrails.md"))?.reason).toContain("protected file GUARDRAILS.md")
   })
 
   it("Given a write under .pi/, When checked, Then the directory entry is named", async () => {
     const gate = await makeGate()
     expect(gate.checkPath(join(dir, ".pi", "custom-tool.ts"))).toMatchObject({
-      reason: expect.stringMatching(/protected file — \.pi\//),
+      reason: expect.stringMatching(/protected file \.pi\//),
     })
   })
 
@@ -183,7 +183,7 @@ describe("checkPath", () => {
     symlinkSync(join(dir, "real"), join(dir, "link"))
     const { createGate } = await loadCore()
     const gate = createGate(harness(), join(dir, "link"))
-    expect(gate.checkPath(join(dir, "link", ".pi", "x.ts"))?.reason).toContain("protected file — .pi/")
+    expect(gate.checkPath(join(dir, "link", ".pi", "x.ts"))?.reason).toContain("protected file .pi/")
   })
 })
 
@@ -400,7 +400,7 @@ describe("startup warnings: SYSTEMONE_THRESHOLD", () => {
       systemOne.mockResolvedValue({ answers: { destructive: { noul: 0.75 }, credentials: { noul: 0 } } })
       const gate = await makeGate({ SYSTEMONE_THRESHOLD: raw })
       expect(gate.warnings).toEqual([expect.stringMatching(/SYSTEMONE_THRESHOLD.*using 0\.7/)])
-      await expect(gate.check("x")).resolves.toMatchObject({ reason: expect.stringMatching(/destructive=0\.75 > 0\.7/) })
+      await expect(gate.check("x")).resolves.toMatchObject({ reason: expect.stringMatching(/destructive=0\.75 is over the 0\.7 threshold/) })
     },
   )
 
@@ -408,7 +408,7 @@ describe("startup warnings: SYSTEMONE_THRESHOLD", () => {
     systemOne.mockResolvedValue({ answers: { destructive: { noul: 0.6 }, credentials: { noul: 0 } } })
     const gate = await makeGate({ SYSTEMONE_THRESHOLD: "0.5" })
     expect(gate.warnings).toEqual([])
-    await expect(gate.check("x")).resolves.toMatchObject({ reason: expect.stringMatching(/> 0\.5/) })
+    await expect(gate.check("x")).resolves.toMatchObject({ reason: expect.stringMatching(/is over the 0\.5 threshold/) })
   })
 })
 
@@ -437,7 +437,7 @@ describe("check: blocking", () => {
   it("blocks above threshold with kind, scores and human-only override", async () => {
     systemOne.mockResolvedValue(blockDestructive)
     const gate = await makeGate()
-    await expect(gate.check("rm -rf /data")).resolves.toMatchObject({ reason: expect.stringMatching(/destructive=0\.98.*named exceptions in\s+GUARDRAILS\.md do not override.*No GUARDRAILS\.md found.*Your human can create one/s) })
+    await expect(gate.check("rm -rf /data")).resolves.toMatchObject({ reason: expect.stringMatching(/destructive=0\.98.*Named exceptions in GUARDRAILS\.md do not override.*No GUARDRAILS\.md found.*A human can create one/s) })
   })
   it("the policy-violation message addresses the human and forbids agent edits", async () => {
     seedGuardrails("# rules\n## The agent MUST NOT\n- install packages globally")
@@ -445,7 +445,7 @@ describe("check: blocking", () => {
       answers: { destructive: { noul: 0.01 }, credentials: { noul: 0 }, guardrails_violation: { noul: 0.9 }, policy_exception: { noul: 0.1 } },
     })
     const gate = await makeGate()
-    await expect(gate.check("npm install -g typescript")).resolves.toMatchObject({ reason: expect.stringMatching(/your human can name the command in the\s+MAY section of GUARDRAILS\.md and restart opencode/s) })
+    await expect(gate.check("npm install -g typescript")).resolves.toMatchObject({ reason: expect.stringMatching(/a human can name the command in the MAY section of GUARDRAILS\.md and restart opencode/s) })
   })
 
   it("picks the worst dimension for the message", async () => {
@@ -484,7 +484,7 @@ describe("check: circumvention cooldown", () => {
     vi.useFakeTimers()
     systemOne.mockResolvedValue(blockDestructive)
     const gate = await makeGate()
-    await expect(gate.check("a")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked command/) })
+    await expect(gate.check("a")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked this command/) })
     await expect(gate.check("b")).resolves.toMatchObject({ reason: expect.stringMatching(/cooling down after 1 blocked command.*next attempt in ~10 ms.*doubles with every block/s) })
     expect(systemOne).toHaveBeenCalledTimes(1)
   })
@@ -505,12 +505,12 @@ describe("check: circumvention cooldown", () => {
     await expect(gate.check("b")).resolves.toMatchObject({ reason: expect.stringMatching(/after 1 blocked/) })
     await expect(gate.check("c")).resolves.toMatchObject({ reason: expect.stringMatching(/after 1 blocked/) })
     await vi.advanceTimersByTimeAsync(10)
-    await expect(gate.check("d")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked command/) })
+    await expect(gate.check("d")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked this command/) })
     await expect(gate.check("e")).resolves.toMatchObject({ reason: expect.stringMatching(/after 2 blocked/) })
     await vi.advanceTimersByTimeAsync(10)
     await expect(gate.check("f")).resolves.toMatchObject({ reason: expect.stringMatching(/cooling down after 2/) })
     await vi.advanceTimersByTimeAsync(10)
-    await expect(gate.check("g")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked command/) })
+    await expect(gate.check("g")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked this command/) })
   })
   it("cooldown errors do not grow the block count", async () => {
     vi.useFakeTimers()
@@ -554,7 +554,7 @@ describe("check: named exceptions in guardrails", () => {
       withGuardrails({ destructive: { noul: 0.97 }, credentials: { noul: 0 }, guardrails_violation: { noul: 0.05 }, policy_exception: { noul: 0.93 } }),
     )
     const gate = await makeGate()
-    await expect(gate.check("dropdb staging")).resolves.toMatchObject({ reason: expect.stringMatching(/named exceptions in\s+GUARDRAILS\.md do not override this/) })
+    await expect(gate.check("dropdb staging")).resolves.toMatchObject({ reason: expect.stringMatching(/Named exceptions in GUARDRAILS\.md do not override this/) })
   })
 
   it("a named exception DOES override a policy violation (false-positive fix)", async () => {
@@ -572,7 +572,7 @@ describe("check: named exceptions in guardrails", () => {
       withGuardrails({ destructive: { noul: 0.97 }, credentials: { noul: 0 }, guardrails_violation: { noul: 0.2 }, policy_exception: { noul: 0.3 } }),
     )
     const gate = await makeGate()
-    await expect(gate.check("rm -rf /var/lib/postgresql")).resolves.toMatchObject({ reason: expect.stringMatching(/named exceptions in\s+GUARDRAILS\.md do not override this/) })
+    await expect(gate.check("rm -rf /var/lib/postgresql")).resolves.toMatchObject({ reason: expect.stringMatching(/Named exceptions in GUARDRAILS\.md do not override this/) })
   })
 
   it("without guardrails there is no exception path", async () => {
@@ -667,7 +667,7 @@ describe("check: named exceptions in guardrails", () => {
     const gate = await makeGate()
     await expect(gate.check("dropdb staging")).resolves.toBeNull()
     systemOne.mockResolvedValue(blockDestructive)
-    await expect(gate.check("x")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked command —/) })
+    await expect(gate.check("x")).resolves.toMatchObject({ reason: expect.stringMatching(/blocked this command/) })
     await vi.advanceTimersByTimeAsync(10)
     systemOne.mockResolvedValue(structuredClone(allow))
     await expect(gate.check("ok")).resolves.toBeNull()

@@ -419,21 +419,13 @@ function decide(verdict: Verdict, hasGuardrails: boolean): Outcome {
 function blockMessage(outcome: Outcome, hasGuardrails: boolean, harness: string): string {
   const perKind =
     outcome.kind === "guardrails_violation"
-      ? `\n  If this is a false positive, your human can name the command in the` +
-        `\n  MAY section of GUARDRAILS.md and restart ${harness} — the gate` +
-        `\n  follows the file.`
-      : `\n  Judged destructive/leaking on its own merits — named exceptions in` +
-        `\n  GUARDRAILS.md do not override this. If it is intended, your human` +
-        `\n  can run it directly, or restart ${harness} with SYSTEMONE_GATE=off` +
-        `\n  for a session that needs it.`
+      ? `If this is a false positive, a human can name the command in the MAY section of GUARDRAILS.md and restart ${harness}. The gate follows the file.`
+      : `Judged destructive or leaking on its own merits. Named exceptions in GUARDRAILS.md do not override this. If the command is intended, a human can run it in a terminal, or restart ${harness} with SYSTEMONE_GATE=off for a session that needs it.`
   const bootstrap = hasGuardrails
     ? ""
-    : `\n  No GUARDRAILS.md found in this repo. Your human can create one` +
-      `\n  (legacy lowercase guardrails.md is still read) and write what the` +
-      `\n  agent may and may not do — name what should` +
-      `\n  pass in the MAY section, then restart ${harness}.`
+    : `\nNo GUARDRAILS.md found in this repo. A human can create one (legacy lowercase guardrails.md is still read) and write what the agent may and may not do. Name what should pass in the MAY section, then restart ${harness}.`
   return (
-    `SystemOne-gate: blocked command — ${outcome.kind}=${outcome.worst.toFixed(2)} > ${THRESHOLD}\n` +
+    `SystemOne-gate blocked this command. ${outcome.kind}=${outcome.worst.toFixed(2)} is over the ${THRESHOLD} threshold.\n` +
     perKind +
     bootstrap
   )
@@ -564,9 +556,7 @@ export function createGate(
     const hit = protectedPath(directory, path)
     if (!hit) return null
     const reason =
-      `SystemOne-gate: protected file — ${hit}\n` +
-      `  Policy and harness configuration are edited by your human, not the agent.\n` +
-      `  Ask them to make the change and restart ${harness.name}.`
+      `SystemOne-gate: protected file ${hit}. Policy and harness configuration are edited by a human, not the agent. Ask them to make the change and restart ${harness.name}.`
     if (warnings.length === 0) return { reason }
     return { reason: [reason, ...warnings.map((w) => `  ${w}`)].join("\n") }
   }

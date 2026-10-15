@@ -70,7 +70,7 @@ describe("pi adapter", () => {
     const handler = await loadHandler()
     const result = await handler(bash("rm -rf /data"), ctx)
     expect(result).toMatchObject({ block: true, reason: expect.stringMatching(/destructive=0\.98[\s\S]*restart pi/) })
-    expect(notify).toHaveBeenCalledWith(expect.stringMatching(/^SystemOne-gate: blocked command/), "warning")
+    expect(notify).toHaveBeenCalledWith(expect.stringMatching(/^SystemOne-gate blocked this command/), "warning")
   })
 
   it("Given a safe verdict, When bash is called, Then the call passes", async () => {
@@ -182,7 +182,7 @@ describe("pi adapter", () => {
     const result = await handler(bash("rm -rf /data"), printCtx)
     expect(result?.block).toBe(true)
     expect(notify).not.toHaveBeenCalled()
-    expect(stderr).toHaveBeenCalledWith(expect.stringMatching(/^SystemOne-gate: blocked command/))
+    expect(stderr).toHaveBeenCalledWith(expect.stringMatching(/^SystemOne-gate blocked this command/))
   })
 
   it("Given print mode and no credential, When bash is called, Then the inactive warning goes to stderr", async () => {
@@ -232,7 +232,7 @@ describe("pi adapter: protected paths", () => {
   it("Given an edit on guardrails.md, When it is called, Then it is blocked with a reason and the human is warned", async () => {
     const handler = await loadHandler()
     const result = await handler(editCall(join(dir, "guardrails.md")), ctx)
-    expect(result).toMatchObject({ block: true, reason: expect.stringMatching(/protected file — GUARDRAILS\.md[\s\S]*restart pi/) })
+    expect(result).toMatchObject({ block: true, reason: expect.stringMatching(/protected file GUARDRAILS\.md[\s\S]*restart pi/) })
     expect(notify).toHaveBeenCalledWith(expect.stringMatching(/^SystemOne-gate: protected file/), "warning")
     expect(systemOne).not.toHaveBeenCalled()
   })
@@ -241,27 +241,27 @@ describe("pi adapter: protected paths", () => {
     const handler = await loadHandler()
     const result = await handler(writeCall(join(dir, ".pi", "tool.ts")), ctx)
     expect(result?.block).toBe(true)
-    expect(result?.reason).toContain("protected file — .pi/")
+    expect(result?.reason).toContain("protected file .pi/")
     expect(systemOne).not.toHaveBeenCalled()
   })
 
   it("Given an edit on @guardrails.md, When pi strips the @ prefix, Then it is blocked", async () => {
     const handler = await loadHandler()
     const result = await handler(editCall("@guardrails.md"), ctx)
-    expect(result?.reason).toContain("protected file — GUARDRAILS.md")
+    expect(result?.reason).toContain("protected file GUARDRAILS.md")
   })
 
   it("Given a write to ~/<project>/guardrails.md, When pi expands the tilde, Then it is blocked", async () => {
     vi.stubEnv("HOME", dirname(dir))
     const handler = await loadHandler()
     const result = await handler(writeCall(`~/${basename(dir)}/guardrails.md`), ctx)
-    expect(result?.reason).toContain("protected file — GUARDRAILS.md")
+    expect(result?.reason).toContain("protected file GUARDRAILS.md")
   })
 
   it("Given a write to a file:// URL of guardrails.md, When pi converts the URL, Then it is blocked", async () => {
     const handler = await loadHandler()
     const result = await handler(writeCall(pathToFileURL(join(dir, "guardrails.md")).href), ctx)
-    expect(result?.reason).toContain("protected file — GUARDRAILS.md")
+    expect(result?.reason).toContain("protected file GUARDRAILS.md")
   })
 
   it("Given a write to a file:// URL that cannot be converted, When it is called, Then the gate does not throw", async () => {
